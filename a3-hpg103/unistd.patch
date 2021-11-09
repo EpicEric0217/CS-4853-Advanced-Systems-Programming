@@ -1,0 +1,7 @@
+566,567d565
+< #define __NR_getproctimes	251
+< __SYSCALL(__NR_getproctimes, sys_getproctimes)
+569c567
+< #define __NR_syscall_max __NR_getproctimes
+---
+> #define __NR_syscall_max __NR_keyctl

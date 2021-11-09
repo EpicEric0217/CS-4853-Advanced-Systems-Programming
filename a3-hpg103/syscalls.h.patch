@@ -1,0 +1,4 @@
+65d64
+< #include <proctimes.h>
+509d507
+< asmlinkage int sys_getproctimes(pid_t pid, struct proctimes *time);

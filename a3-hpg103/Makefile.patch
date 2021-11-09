@@ -1,0 +1,4 @@
+10c10
+< 	    kthread.o wait.o kfifo.o sys_ni.o getproctimes.o
+---
+> 	    kthread.o wait.o kfifo.o sys_ni.o

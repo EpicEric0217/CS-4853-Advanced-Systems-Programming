@@ -1,0 +1,19 @@
+number of stack pages before mapping; 2
+
+my mapping @ 0x2aaaaaac0000 ~ 0x2aaaaaaca000
+num pages before touching: 0
+
+number of pages after touching 1 pages: 1
+number of pages after touching 2 pages: 2
+number of pages after touching 3 pages: 3
+number of pages after touching 4 pages: 4
+number of pages after touching 5 pages: 5
+number of pages after touching 6 pages: 6
+number of pages after touching 7 pages: 7
+number of pages after touching 8 pages: 8
+number of pages after touching 9 pages: 9
+number of pages after touching 10 pages: 10
+my global array @ 0x500a40 ~ 0x50aa40
+number of pages by global: 1
+number of stack pages after mapping: 2
+

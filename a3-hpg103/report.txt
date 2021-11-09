@@ -1,0 +1,130 @@
+There are three basic steps to add a new system call in Linux kernel, which I performed throughout this assignment.
+1.First, I added a new system call number '351'
+2.Then I added a new system call table entry for the above system call number '351' with a function pointer to function 'getproctimes.c'
+3.Then I implemented the function 'getproctimes.c' with the system call’s actual functionality. 
+	– I also added the proper header file for new types, proctimes.h, and also copied it to the test directory for easier testing of the system call.
+	– Then I added the arguments from user space to kernel and results from kernel to user space
+
+
+	1.Add a new system call number '351'
+	----------------------------------
+• Open linux-2.6.11/asm-x86_64/include/unistd_32.h
+• Find system call numbers
+• Find last system call number (350)
+• Define a new one with the next number (351)
+#define __NR_getproctimes 351
+__SYSCALL(__NR_getproctimes, sys_getproctimes)
+
+#define __NR_syscall_max __NR_getproctimes
+#ifndef __NO_STUBS
+
+• Increase NR_syscalls by one (350 -> 351)
+• sys_getproctimes has the 350 system call number
+
+	Step #2: I add the proctimes header file in ~/linux-2.6.11/include as shown below:
+	#ifndef ___PROCTIMES___
+#define ___PROCTIMES___
+struct proc_time{
+        pid_t pid;
+	char name[16];
+	unsigned long start_time;
+	unsigned long real_time;
+	unsigned long user_time;
+	unsigned long sys_time;
+};
+struct proctimes{
+	struct proc_time proc;
+	struct proc_time parent_proc;
+	struct proc_time oldest_child_proc;
+};
+#endif
+	
+
+	Step #3: Now I modified the system call’s function to 	---------------------------------
+
+• Create linux-source-2.6.38.1/kernel/getproctimes.c
+• Write system call’s functionality as shown below:
+
+asmlinkage int sys_getproctimes(pid_t pid, struct proctimes *time) {
+	struct task_struct * process;
+	printk(KERN_INFO "getproctimes designed by Eric Huddleston is invoked!\n");
+
+	// get the specified process
+	if(pid == 0) {
+		process = get_current();
+	} else {
+		process = find_task_by_pid(pid);
+		// if specified process does not exist, return EINVAL
+		if(process == NULL) {
+			printk(KERN_INFO "getproctimes exiting with error\n");
+			return EINVAL;
+		}
+	}
+
+//	if(!access_ok(VERIFY_WRITE, time, sizeof(time))) {
+//		printk(KERN_INFO "getproctimes invalid pointer passed in\n");
+//		return EINVAL;
+//	}
+
+	struct proctimes proctimes;
+	struct proc_time current_proc_time, parent_proc_time, oldchild_proc_time;
+
+	// Find oldest child process
+	struct list_head *child_list = process->parent->children.next; // list of children
+      //struct list_head *first_child_list; // first child on that list
+	struct task_struct *oldest_child = container_of(child_list, struct task_struct, sibling);
+//	if(!first_child_list = NULL) {
+		// Get the first child from the list
+//		struct task_struct *first_child = list_entry(first_child_list, struct task_struct, sibling);
+//		printk(KERN_INFO "getproctimes: child detected for pid %d\n", process->pid);
+//		printk(KERN_INFO "getproctimes: first child list @ %p\n", first_child_list);
+//		printk(KERN_INFO "getproctimes: first child @ %p\n", first_child);
+//		printk(KERN_INFO "getproctimes: first child pid %d\n", first_child->pid);
+//		oldest_child = first_child;
+//	}
+
+	populate_proc_time_struct(&current_proc_time, process);
+	populate_proc_time_struct(&parent_proc_time, process->parent);
+	populate_proc_time_struct(&oldchild_proc_time, oldest_child);
+	//if(&oldest_child > 1) {
+	//	populate_proc_time_struct(&oldchild_proc_time, oldest_child);
+	//} else {
+	//	memset(&oldchild_proc_time, 0, sizeof(struct proc_time));
+	//}
+	
+	// Populate the fields of our local structure
+	proctimes.proc = current_proc_time;
+	proctimes.parent_proc = parent_proc_time;
+	proctimes.oldest_child_proc = oldchild_proc_time;
+
+	copy_to_user(time, &proctimes, sizeof(struct proctimes));
+
+	printk(KERN_INFO "getproctimes found pid of %d\n", process->pid);
+	return(0);	// return 0 on success
+}
+
+I also coded the populate_proc_time_struct function in order to obtain the 
+process start time, user time, and system time, as shown below:
+
+void populate_proc_time_struct(struct proc_time *proc_time, struct task_struct *process) {
+	proc_time->pid = process->pid;
+	
+
+	struct timespec ts_start_time = process->start_time;
+	proc_time->start_time = ts_start_time.tv_sec * ONE_BILLION + ts_start_time.tv_nsec;
+	proc_time->real_time = jiffies_to_usecs(jiffies) - (proc_time->start_time); 
+	proc_time->user_time = get_current()->utime; 
+	proc_time->sys_time = get_current()->stime;
+
+	// Copy the name field over from the task struct to our local structure
+	strcpy((char *)&proc_time->name, (char *)&process->comm);
+}
+
+	The getproctimes system call:
+	----------------------------
+int getproctimes(int pid, struct proctimes*pt);
+• First argument: pid of a process, or the current process if (pid==-1)
+• Second argument: passed by referenced and used by kernel to return the necessary info to user space
+• Return value: EINVAL on error or 0 on success
+
+	
